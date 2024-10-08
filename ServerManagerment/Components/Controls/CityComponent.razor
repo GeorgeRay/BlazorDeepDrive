@@ -1,0 +1,111 @@
+﻿@using ServerManagement.StateStore
+
+@implements IDisposable
+
+@inject TorontoOnlineServersStore TorontoOnlineServersStore
+@inject MontrealOnlineServersStore MontrealOnlineServersStore
+
+
+
+<div class="col">
+    <div class="@($"card {(city==selectedCity ? "border-primary":"border-secondary")}")">
+        <img class="card-img-top" src="@($"/images/{city}.png")" alt="Card image cap">
+        <div class="card-body">
+
+            <button class="btn btn-primary" @onclick="@(() => {SelectCity(city);})">@city</button>
+        </div>
+        <div>
+            @if (city.Equals("Toronto", StringComparison.OrdinalIgnoreCase))
+            {
+                <text>@numberServersOnlineToronto</text>
+            }
+            else if (city.Equals("Montreal", StringComparison.OrdinalIgnoreCase))
+            {
+                <text>@numberServersOnlineMontreal</text>
+            }
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private int numberServersOnlineToronto;
+    private int numberServersOnlineMontreal;
+
+    [Parameter]
+    public string? selectedCity { get; set; }
+    [Parameter]
+    public string? city { get; set; }
+    [Parameter]
+    public EventCallback<string> SelectCityCallback { get; set; }
+
+
+
+    private void SelectCity(string cityName)
+    {
+        //if the new city is different from the selected city then update the selected city for the parent component.
+        //otherwise, clear the selected city.
+        if (cityName != selectedCity)
+        {
+            SelectCityCallback.InvokeAsync(cityName);
+        }
+        else
+        {            
+            SelectCityCallback.InvokeAsync(string.Empty);
+        }
+
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        //This will run every time the component renders...once for each city component.
+        if (firstRender)
+        {   
+            switch(city)
+            {
+                case "Toronto":
+                    numberServersOnlineToronto = TorontoOnlineServersStore.GetNumServersOnline();
+                    TorontoOnlineServersStore.AddStateChangeListeners(OnTorontoServersStatusChange);
+                    break;
+                case "Montreal":
+                    numberServersOnlineMontreal = MontrealOnlineServersStore.GetNumServersOnline();
+                    MontrealOnlineServersStore.AddStateChangeListeners(OnMontrealServersStatusChange);
+                    break;
+            }          
+            StateHasChanged();
+        }
+    }
+
+    private void OnTorontoServersStatusChange()
+    {
+        numberServersOnlineToronto = TorontoOnlineServersStore.GetNumServersOnline();
+        StateHasChanged();
+    }
+
+    private void OnMontrealServersStatusChange()
+    {
+        numberServersOnlineMontreal = MontrealOnlineServersStore.GetNumServersOnline();
+        StateHasChanged();
+    }
+
+    private void OnServersStatusChange()
+    {
+        numberServersOnlineToronto = TorontoOnlineServersStore.GetNumServersOnline();
+        numberServersOnlineMontreal = MontrealOnlineServersStore.GetNumServersOnline();
+        StateHasChanged();
+    }
+
+public void Dispose()
+    {
+        switch(city)
+        {
+            case "Toronto":
+                TorontoOnlineServersStore.RemoveStateChangeListeners(OnTorontoServersStatusChange);
+                break;
+            case "Montreal":
+                MontrealOnlineServersStore.RemoveStateChangeListeners(OnMontrealServersStatusChange);
+                break;
+        }
+
+    }
+}

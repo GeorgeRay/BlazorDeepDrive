@@ -1,0 +1,85 @@
+﻿@page "/servers"
+@page "/servers/back_from/{passedInCitySelected?}"
+@using ServerManagement.StateStore
+
+@rendermode InteractiveServer
+
+@inject NavigationManager NavigationManager
+@inject TorontoOnlineServersStore TorontoOnlineServersStore
+@inject MontrealOnlineServersStore MontrealOnlineServersStore
+@inject IServersEFCoreRepository ServersEFCoreRepository
+
+<h3>Servers</h3>
+<br />
+<br />
+<CityListComponent @rendermode="InteractiveServer"
+                   @ref="cityListComponent"
+                   selectedCity="@selectedCity"
+                   SelectCityCallback="HandleCitySelection"></CityListComponent>
+<br />
+
+<SearchComponent @ref="searchcomponent"
+                 SearchCallback="HandlesServerToFind"
+                 style="width:200px"></SearchComponent>
+
+<br />
+<CascadingValue Name="SelectedCity" Value="@selectedCity">
+    <ServerListComponent @rendermode="InteractiveServer"
+                         CityName="@selectedCity"
+                         ServerSearchTerm="@serverSearchTerm"></ServerListComponent>
+</CascadingValue>
+<p>
+    <a class="btn btn-primary" href=@($"/server?SelectedCity={selectedCity}")>Add Server</a>
+</p>
+@code {
+    [Parameter]
+    public string? PassedInCitySelected { get; set; }
+
+    private string selectedCity = string.Empty;
+    private string serverSearchTerm = string.Empty;
+
+    private SearchComponent? searchcomponent;
+    private CityListComponent? cityListComponent;
+
+
+    private void HandlesServerToFind(string serverToFind)
+    {
+        serverSearchTerm = serverToFind;
+        selectedCity = string.Empty;
+
+
+    }
+
+    private void HandleCitySelection(string cityName)
+    {
+        selectedCity = cityName;
+        serverSearchTerm = string.Empty;
+        searchcomponent?.ClearSearch();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if(NavigationManager.Uri.Contains("back_from")
+            && !string.IsNullOrWhiteSpace(PassedInCitySelected))
+            {
+                selectedCity = PassedInCitySelected;
+
+                StateHasChanged();
+            } 
+
+            var serversInToronto = ServersEFCoreRepository.GetServersByCity("Toronto");
+            if (serversInToronto is not null)
+            {
+                TorontoOnlineServersStore.SetNumServersOnline(serversInToronto.Count(x => x.IsOnline));
+            }
+
+            var serversInMontreal = ServersEFCoreRepository.GetServersByCity("Montreal");
+            if (serversInMontreal is not null)
+            {
+                MontrealOnlineServersStore.SetNumServersOnline(serversInMontreal.Count(x => x.IsOnline));
+            }
+        }
+    }
+}

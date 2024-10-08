@@ -1,0 +1,61 @@
+﻿@page "/servers/add"
+
+@inject NavigationManager NavigationManager
+@inject IServersEFCoreRepository ServersEFCoreRepository
+
+@rendermode InteractiveServer
+
+<h3>Add Server</h3>
+
+<br />
+<br />
+<EditForm Model="server" FormName="formServer" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col-2">
+            <label for="Name" class="col-form-label">Name</label>
+        </div>
+        <div class="col-6">
+            <InputText @bind-Value="server.Name" class="form-control"></InputText>
+        </div>
+        <div class="col">
+            <ValidationMessage For="() => server.Name" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-2">
+            <label for="Name" class="col-form-label">City</label>
+        </div>
+        <div class="col-6">
+            <InputText @bind-Value="server.City" class="form-control"></InputText>
+        </div>
+        <div class="col">
+            <ValidationMessage For="() => server.City" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-2">
+            <label for="Name" class="col-form-label">Online</label>
+        </div>
+        <div class="col-6">
+            <InputCheckbox @bind-Value="server.IsOnline" class="form-check-input"></InputCheckbox>
+        </div>
+    </div>
+    <br />
+    <button class="btn btn-primary" type="submit">Add</button>
+    &nbsp;
+    <a href="/servers" class="btn btn-primary">Cancel</a>
+</EditForm>
+
+@code {
+   
+    private Server server { get; set; } = new Server() {IsOnline = false };
+
+    private void Submit()
+    {
+        ServersEFCoreRepository.AddServer(server);
+        NavigationManager.NavigateTo("/servers");
+    }
+
+}

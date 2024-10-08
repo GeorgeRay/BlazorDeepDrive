@@ -1,0 +1,56 @@
+﻿@inject IServersEFCoreRepository ServersEFCoreRepository
+
+<table class="table table-striped">
+    <RepeaterComponent Items="servers">
+        <Header>
+        <thead>
+            <tr>
+
+                <th>Name</th>
+                <th>City</th>
+                <th>Status</th>
+                <th>People Online</th>
+                <th></th>
+                <th></th>
+
+            </tr>
+        </thead>
+        </Header>
+        <Row Context="server">
+            <ServerComponent Server="server"
+                DeleteServerCallback="HandleServerDelete"></ServerComponent>
+        </Row>
+    </RepeaterComponent>
+</table>
+
+@code {
+    [Parameter]
+    public string? CityName { get; set; }
+    [Parameter]
+    public string? ServerSearchTerm { get; set; }
+
+    private List<ServerManagement.Models.Server>? servers;
+
+    protected override void OnParametersSet()
+    {
+        if ((CityName == null || CityName == "") && (ServerSearchTerm == null || ServerSearchTerm == ""))
+        {
+            servers = ServersEFCoreRepository.GetServers();
+        }
+        else if (CityName != null && CityName != "")
+        {
+            servers = ServersEFCoreRepository.GetServersByCity(CityName);
+        }
+        else
+        {
+            servers = ServersEFCoreRepository.SearchServers(ServerSearchTerm);
+        }
+    }
+    private void HandleServerDelete(int serverId)
+    {
+        ServersEFCoreRepository.DeleteServer(serverId);
+        servers = ServersEFCoreRepository.GetServers();
+    }
+
+
+}

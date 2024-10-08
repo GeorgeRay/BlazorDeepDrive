@@ -1,0 +1,133 @@
+﻿@page "/server/{id:int?}"
+
+
+
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IServersEFCoreRepository ServersEFCoreRepository
+
+
+@if (Id.HasValue)
+{
+    <h3>Edit Server</h3>
+}
+else
+{
+    <h3>Add Server</h3>
+}
+@if (server != null)
+{
+    <EditForm Model="server" FormName="formServer" OnValidSubmit="Submit" Enhance>
+     <DataAnnotationsValidator />
+     @if (server.ServerId > 0)
+        {
+            <InputNumber @bind-Value="server.ServerId" hidden></InputNumber>
+        }
+
+        <FieldComponent Label="Name">
+            <Control>
+                <InputText @bind-Value="server.Name" class="form-control" @bind-Value:after="SetUnsavedChangeFlag"></InputText>
+            </Control>
+            <ValidationControl>
+                <ValidationMessage For="() => server.Name" />
+            </ValidationControl>
+        </FieldComponent>
+
+        <FieldComponent Label="City">
+            <Control>
+                <InputText @bind-Value="server.City" class="form-control"></InputText>
+            </Control>
+            <ValidationControl>
+                <ValidationMessage For="() => server.City" />
+            </ValidationControl>
+        </FieldComponent>
+
+        <FieldComponent Label="Online">
+            <Control>
+                <InputCheckbox @bind-Value="server.IsOnline" class="form-check-input"></InputCheckbox>
+            </Control>
+        </FieldComponent>
+        <br />
+        @if (server.ServerId > 0)
+        {
+            <button class="btn btn-primary" type="submit">Update</button>
+        }
+        else
+        {
+            <button class="btn btn-primary" type="submit">Save</button>
+        }
+        &nbsp;
+        <a href="/servers" class="btn btn-primary">Close</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? SelectedCity { get; set; }
+
+
+    [SupplyParameterFromForm]
+    private Server? server { get; set; }
+        
+    public string? City { get; set; }
+
+    public bool unsavedEdits = false;
+
+    private void SetUnsavedChangeFlag()
+    {
+        unsavedEdits = true;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Id.HasValue)
+        {
+            server ??= ServersEFCoreRepository.GetServerById(Id.Value);
+        }
+        else
+        {
+            server = new Server();
+        }
+
+        if (server != null && !string.IsNullOrEmpty(SelectedCity))
+        {
+            server.City = SelectedCity;
+        }
+    }
+
+    private void Submit()
+    {
+        if (server != null)
+        {
+            if (Id.HasValue)
+            {
+                ServersEFCoreRepository.UpdateServer(server.ServerId, server);
+                unsavedEdits = false;
+            }
+            else
+            {
+                ServersEFCoreRepository.AddServer(server);
+            }
+
+        }
+
+        NavigationManager.NavigateTo($"/servers/back_from/{this.SelectedCity}");
+    }
+
+
+    private async Task OnBeforeInternalnavigation(LocationChangingContext context)
+    {
+        if (unsavedEdits)
+        {
+            var isConfirmed = await JSRuntime.InvokeAsync<bool>("confirm", "There are unsaved changes.\nAre you sure you want to leave this page?");
+            if (!isConfirmed)
+            {
+                context.PreventNavigation();
+            }
+        }
+
+    }
+}

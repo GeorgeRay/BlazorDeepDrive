@@ -1,0 +1,127 @@
+﻿@inject NavigationManager NavigationManager
+@inject TorontoOnlineServersStore TorontoOnlineServersStore
+@inject MontrealOnlineServersStore MontrealOnlineServersStore
+@inject IServersEFCoreRepository ServersEFCoreRepository
+
+
+@if (Server != null)
+{
+    <tr style="background-color: @GetBackgroundColor()">
+        <td>
+            @Server.Name
+        </td>
+        <td>@Server.City</td>
+        <td>
+            <span style="color:@((Server.IsOnline ? "green" : "red"))">@(Server.IsOnline ? "Online" : "Offline")</span>
+        </td>
+        <td>
+            @if (Server.IsOnline)
+            {
+                Random rnd = new Random();
+                @($" with {rnd.Next(100)} users.")
+            }
+        </td>
+        <td>
+            @if (Server.IsOnline)
+            {
+                <button type="button" class="btn btn-outline-danger" @onclick="@(() => SetServerStatus(false))">Turn Off</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-outline-success" @onclick="@(()=> SetServerStatus(true))">Turn On</button>
+            }
+            <a href=@($"/server/{Server.ServerId}?SelectedCity={SelectedCity}") class="btn btn-link">Edit</a>
+        </td>
+        <td>
+            &nbsp;
+            <EditForm Model="Server"
+                      FormName="@($"form-server-{Server.ServerId}")"
+                      OnValidSubmit="@(() => {DeleteServer(Server.ServerId);})">
+                <button type="submit" class="btn btn-primary">Delete</button>
+            </EditForm>
+        </td>
+    </tr>
+
+}
+
+@code {
+    [Parameter]
+    public Server? Server { get; set; }
+    [Parameter]
+    public EventCallback<int> DeleteServerCallback { get; set; }
+    [CascadingParameter(Name = "SelectedCity")]
+    public string? SelectedCity { get; set; }
+
+
+    private void DeleteServer(int serverId)
+    {        
+        DeleteServerCallback.InvokeAsync(serverId);        
+    }
+
+    private string GetBackgroundColor()
+    {
+        if (SelectedCity != null)
+        {
+            switch (this.SelectedCity)
+            {
+                case "Toronto":
+                    return "powderblue";
+                case "Montreal":
+                    return "lightgray";
+                case "Ottawa":
+                    return "Palegreen";
+                case "Calgary":
+                    return "pink";
+                case "Halifax":
+                    return "white";
+                default:
+                    return "white";
+            }
+        }
+        else
+        {
+            return "white";
+        }
+    }
+
+    private void SetServerStatus(bool status)
+    {
+        if (Server != null)
+        {
+            if (Server.IsOnline != status)
+            {
+                if (Server.City.Equals("Toronto", StringComparison.OrdinalIgnoreCase))
+                {
+                    var num = TorontoOnlineServersStore.GetNumServersOnline();
+                    if (status)
+                    {
+                        TorontoOnlineServersStore.SetNumServersOnline(num + 1);   
+                    }
+                    else if (num > 0)
+                    {
+                        TorontoOnlineServersStore.SetNumServersOnline(num - 1);
+                    }
+                    Server.IsOnline = status;
+                    // TorontoOnlineServersStore.BroadcastStateChange();
+                } 
+                else if (Server.City.Equals("Montreal", StringComparison.OrdinalIgnoreCase))
+                {
+                    var num = MontrealOnlineServersStore.GetNumServersOnline();
+                    if (status)
+                    {
+                        MontrealOnlineServersStore.SetNumServersOnline(num + 1);   
+                    }
+                    else if (num > 0)
+                    {
+                        MontrealOnlineServersStore.SetNumServersOnline(num - 1);
+                    }
+                    Server.IsOnline = status;
+                    // MontrealOnlineServersStore.BroadcastStateChange();
+                }
+                ServersEFCoreRepository.UpdateServer(this.Server.ServerId, Server);
+            }
+          
+        }
+        
+    }
+}
